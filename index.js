@@ -15,6 +15,12 @@ const HELP_URL =
     "https://adapter.codelab.club/extension_guide/microbit/";
 
 
+const FormFlash = {
+        en: "flash firmware",
+        "zh-cn": "刷入固件",
+    };
+
+
 var ButtonParam = {
     A: "A",
     B: "B",
@@ -222,7 +228,24 @@ class Scratch3UsbMicrobitBlocks {
         this.adapter_client = new AdapterClient(NODE_ID, HELP_URL);
     }
 
+    _setLocale() {
+        let now_locale = "";
+        switch (formatMessage.setup().locale) {
+            case "en":
+                now_locale = "en";
+                break;
+            case "zh-cn":
+                now_locale = "zh-cn";
+                break;
+            default:
+                now_locale = "zh-cn";
+                break;
+        }
+        return now_locale;
+    }
+
     getInfo() {
+        let the_locale = this._setLocale();
         return {
             id: "usbMicrobit",
             name: "usbMicrobit",
@@ -237,6 +260,12 @@ class Scratch3UsbMicrobitBlocks {
                         default: "help",
                         description: "open help url",
                     }),
+                    arguments: {},
+                },
+                {
+                    opcode: "flash_firmware",
+                    blockType: BlockType.COMMAND,
+                    text: FormFlash[the_locale],
                     arguments: {},
                 },
                 {
@@ -906,6 +935,23 @@ class Scratch3UsbMicrobitBlocks {
 
     open_help_url(args) {
         window.open(HELP_URL);
+    }
+
+    flash_firmware(args) {
+        return new Promise(resolve => {
+            fetch(`https://codelab-adapter.codelab.club:12358/api/message/flash`, {
+              body: JSON.stringify({
+                "message": "flash_usb_microbit",
+              }),
+              headers: {
+                'content-type': 'application/json'
+              },
+              method: "POST"
+            }).then(res => res.json()).then(ret => {
+              const poem = ret.status;
+              resolve(`${poem}`)
+            });
+          });
     }
 
 }
