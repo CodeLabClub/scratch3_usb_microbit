@@ -14,7 +14,6 @@ const blockIconURI = require("./icon_logo.png");
 const menuIconURI = blockIconURI;
 
 const NODE_ID = "eim/extension_usb_microbit";
-const EXTENSION_ID = "usbMicrobit";
 const HELP_URL = "https://adapter.codelab.club/extension_guide/microbit/";
 
 const FormHelp = {
@@ -126,7 +125,9 @@ class Client {
             null, // node_statu_change_callback,
             null, // notify_callback,
             null, // error_message_callback,
-            null // update_adapter_status
+            null, // update_adapter_status
+            60,
+            runtime
         );
     }
 
@@ -210,6 +211,7 @@ class UsbMicroBit {
         }).then(() => {
             let ports = this._adapter_client.formatPorts()
             let portsObj = ports
+                .filter(port => !!port.value)
                 .map(port => ({"name":port.value,"peripheralId": port.value,"rssi":-0}))
                 .reduce((prev, curr) => {
                     prev[curr.peripheralId] = curr
@@ -366,6 +368,7 @@ class Scratch3UsbMicrobitBlocks {
                     text: FormFlash[the_locale],
                     arguments: {},
                 },
+                /*
                 {
                     opcode: "control_extension",
                     blockType: BlockType.COMMAND,
@@ -406,6 +409,7 @@ class Scratch3UsbMicrobitBlocks {
                         },
                     },
                 },
+                */
                 {
                     opcode: "whenButtonIsPressed",
                     blockType: BlockType.HAT,
@@ -657,7 +661,7 @@ class Scratch3UsbMicrobitBlocks {
 
     python_exec(args) {
         const python_code = `${args.CODE}`;
-        this._peripheral._adapter_client.adapter_base_client.emit_without_messageid(
+        this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
             NODE_ID,
             python_code
         );
@@ -953,7 +957,7 @@ class Scratch3UsbMicrobitBlocks {
             convert[args.ICON_PARAM]
         }, wait = True, loop = False)`; // console.log(args.ICON_PARAM);
 
-        return this._peripheral._adapter_client.adapter_base_client.emit_without_messageid(
+        return this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
             NODE_ID,
             python_code
         );
@@ -1017,14 +1021,16 @@ class Scratch3UsbMicrobitBlocks {
     }
     say(args) {
         var python_code = `display.scroll('${args.TEXT}', wait=False, loop=False)`;
-        return this._peripheral._adapter_client.adapter_base_client.emit_without_messageid(
+        return this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
             NODE_ID,
             python_code
         );
     }
 
     displaySymbol(args) {
+        // console.log("MATRIX->", args.MATRIX);
         const symbol = cast.toString(args.MATRIX).replace(/\s/g, "");
+        //console.log("symbol->", symbol);
         var symbol_code = "";
         for (var i = 0; i < symbol.length; i++) {
             if (i % 5 == 0 && i != 0) {
@@ -1038,15 +1044,15 @@ class Scratch3UsbMicrobitBlocks {
         }
 
         var python_code = `display.show(Image("${symbol_code}"), wait=True, loop=False)`;
-
-        return this._peripheral._adapter_client.adapter_base_client.emit_without_messageid(
+        // console.log(python_code);
+        return this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
             NODE_ID,
             python_code
         );
     }
     clearScreen(args) {
         var python_code = `display.clear()`;
-        return this._peripheral._adapter_client.adapter_base_client.emit_without_messageid(
+        return this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
             NODE_ID,
             python_code
         );
