@@ -111,10 +111,18 @@ class Client {
         }
     }
 
-    constructor(node_id, help_url, runtime) {
+    notify_callback(msg) {
+        // 使用通知机制直到自己退出
+        if (msg.message === `${this.NODE_ID} stopped`){
+            this._Blocks.reset();
+        }
+    }
+
+    constructor(node_id, help_url, runtime, _Blocks) {
         this.NODE_ID = node_id;
         this.HELP_URL = help_url;
         this._runtime = runtime;
+        this._Blocks = _Blocks;
 
         this.adapter_base_client = new AdapterBaseClient(
             null, // onConnect,
@@ -123,10 +131,10 @@ class Client {
             this.onAdapterPluginMessage.bind(this), // onAdapterPluginMessage,
             null, // update_nodes_status,
             null, // node_statu_change_callback,
-            null, // notify_callback,
+            this.notify_callback.bind(this),
             null, // error_message_callback,
             null, // update_adapter_status
-            60,
+            20,
             runtime
         );
     }
@@ -152,7 +160,7 @@ class Client {
 class UsbMicroBit {
     // https://github.com/LLK/scratch-vm/blob/develop/src/extensions/scratch3_microbit/index.js#L62
     constructor(runtime, extensionId) {
-        this._adapter_client = new Client(NODE_ID, HELP_URL, runtime); // 把收到的信息传递到runtime里
+        this._adapter_client = new Client(NODE_ID, HELP_URL, runtime, this); // 把收到的信息传递到runtime里
         this._runtime = runtime;
         /*
         this._runtime = runtime;
@@ -206,7 +214,8 @@ class UsbMicroBit {
         promise.then(() => {
             return this._adapter_client.adapter_base_client.emit_with_messageid(
                 NODE_ID,
-                code
+                code,
+                10000
             )
         }).then(() => {
             let ports = this._adapter_client.formatPorts()
@@ -262,14 +271,19 @@ class UsbMicroBit {
         console.log("connect");
         if (this._adapter_client) {
             const port = id;
-            const code = `microbitHelper.connect("${port}")`; // disconnect()
+            const firmware = "usb_microbit";
+            const code = `microbitHelper.connect("${port}","${firmware}")`; // disconnect()
 
             this._adapter_client.adapter_base_client.emit_with_messageid(
                 NODE_ID,
-                code
-            ).then(() => {
-                this.connected = true
-                this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
+                code,
+                10000
+            ).then((msg) => {
+                // console.debug("connect msg->",msg)
+                if (msg == "ok"){
+                    this.connected = true
+                    this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
+                }
             })
         }
     }
@@ -362,12 +376,13 @@ class Scratch3UsbMicrobitBlocks {
                     text: FormHelp[the_locale],
                     arguments: {},
                 },
+                /*
                 {
                     opcode: "flash_firmware",
                     blockType: BlockType.COMMAND,
                     text: FormFlash[the_locale],
                     arguments: {},
-                },
+                },*/
                 /*
                 {
                     opcode: "control_extension",
@@ -594,12 +609,11 @@ class Scratch3UsbMicrobitBlocks {
                 },
                 "---",
                 {
-                    opcode: "python_exec",
-                    // 前端打上标记 危险
+                    opcode: "python_eval",
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: "usbMicrobit.python_exec",
-                        default: "exec [CODE]",
+                        id: "usbMicrobit.python_eval",
+                        default: "eval [CODE]",
                         description: "run python code.",
                     }),
                     arguments: {
@@ -659,13 +673,12 @@ class Scratch3UsbMicrobitBlocks {
         return this._peripheral._adapter_client.formatPorts();
     }
 
-    python_exec(args) {
+    python_eval(args) {
         const python_code = `${args.CODE}`;
-        this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
+        return this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
             NODE_ID,
             python_code
         );
-        return;
     }
 
     initButtonParam() {
@@ -1150,17 +1163,19 @@ class Scratch3UsbMicrobitBlocks {
                 });
         });
     }
-
+    
+    /*
     update_ports(args) {
         // 更新到一个变量里
         const code = `microbitHelper.update_ports()`; // 广播 , 收到特定信息更新变量
         //this.socket.emit("actuator", { topic: TOPIC, payload: message });
         return this._peripheral._adapter_client.adapter_base_client.emit_with_messageid(
             NODE_ID,
-            code
+            code,
+            10000
         );
     }
-
+    
     connect(args) {
         const port = args.port;
         const code = `microbitHelper.connect("${port}")`;
@@ -1169,7 +1184,7 @@ class Scratch3UsbMicrobitBlocks {
             NODE_ID,
             code
         );
-    }
+    }*/
 
 }
 
