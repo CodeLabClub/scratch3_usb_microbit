@@ -10,8 +10,8 @@ https://github.com/LLK/scratch-vm/blob/develop/src/extensions/scratch3_microbit/
 放弃Scratch愚蠢丑陋的UI连接
 */
 
-const blockIconURI = require("./icon_logo.png");
-const menuIconURI = blockIconURI;
+const blockIconURI = require('./icon_block.svg');
+const menuIconURI = require('./icon.svg');
 
 const NODE_ID = "eim/extension_usb_microbit";
 const HELP_URL = "https://adapter.codelab.club/extension_guide/microbit/";
@@ -162,6 +162,7 @@ class UsbMicroBit {
     constructor(runtime, extensionId) {
         this._adapter_client = new Client(NODE_ID, HELP_URL, runtime, this); // 把收到的信息传递到runtime里
         this._runtime = runtime;
+        this._extensionId = extensionId;
         /*
         this._runtime = runtime;
         this._runtime.registerPeripheralExtension(extensionId, this); // 主要使用UI runtime
@@ -195,7 +196,7 @@ class UsbMicroBit {
     }
 
     scan() {
-        if (window.socketState !== undefined && !window.socketState) {
+        if (!this._adapter_client.adapter_base_client.connected) {
             this._runtime.emit(this._runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
                 message: `Codelab adapter 未连接`,
                 extensionId: this.extensionId
@@ -283,7 +284,20 @@ class UsbMicroBit {
                 if (msg == "ok"){
                     this.connected = true
                     this._runtime.emit(this._runtime.constructor.PERIPHERAL_CONNECTED);
-                }
+                };
+                if (msg == "flash..."){
+                    // https://github.com/LLK/scratch-vm/blob/3e65526ed83d6ef769bd33e4b73e87b8e7184c9b/src/engine/runtime.js#L637
+                    setTimeout(() => {
+                        this._runtime.emit(this._runtime.constructor.PERIPHERAL_REQUEST_ERROR,
+                            {
+                                message: `固件已烧录，请重新连接`,
+                                extensionId: this.extensionId,
+                            }
+                            );
+                        // reject(`timeout(${timeout}ms)`);
+                      }, 15000);
+                    
+                };
             })
         }
     }
@@ -364,7 +378,7 @@ class Scratch3UsbMicrobitBlocks {
         let the_locale = this._setLocale();
         return {
             id: "usbMicrobit",
-            name: "usbMicrobit",
+            name: "USB micro:bit",
             menuIconURI: menuIconURI,
             blockIconURI: blockIconURI,
             color1: "#3eb6fd",
@@ -1163,7 +1177,7 @@ class Scratch3UsbMicrobitBlocks {
                 });
         });
     }
-    
+
     /*
     update_ports(args) {
         // 更新到一个变量里
@@ -1175,7 +1189,7 @@ class Scratch3UsbMicrobitBlocks {
             10000
         );
     }
-    
+
     connect(args) {
         const port = args.port;
         const code = `microbitHelper.connect("${port}")`;
