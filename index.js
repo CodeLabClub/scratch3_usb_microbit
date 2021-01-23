@@ -278,7 +278,7 @@ class UsbMicroBit {
             this._adapter_client.adapter_base_client.emit_with_messageid(
                 NODE_ID,
                 code,
-                10000
+                15000
             ).then((msg) => {
                 // console.debug("connect msg->",msg)
                 if (msg == "ok"){
@@ -295,7 +295,7 @@ class UsbMicroBit {
                             }
                             );
                         // reject(`timeout(${timeout}ms)`);
-                      }, 15000);
+                    }, 15000);
                     
                 };
             })
